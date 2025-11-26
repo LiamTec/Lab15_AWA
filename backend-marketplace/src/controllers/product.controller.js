@@ -5,7 +5,14 @@ const Product = require('../models/Product');
 // 1. Obtener todos los productos
 exports.getAllProducts = async (req, res) => {
   try {
-    const products = await Product.findAll();
+    const where = {};
+    const { category } = req.query;
+    if (category) {
+      // allow filtering by category id or name
+      where.categoryId = category;
+    }
+
+    const products = await Product.findAll({ where });
 
     res.json({
       success: true,

@@ -1,11 +1,13 @@
 #!/usr/bin/env node
 // scripts/load-init.js
 // Lee src/config/init.sql y ejecuta las sentencias contra la DB usando mysql2
+// También inserta usuarios de test con bcrypt
 
 require('dotenv').config();
 const fs = require('fs');
 const path = require('path');
 const mysql = require('mysql2/promise');
+const bcrypt = require('bcrypt');
 
 async function main() {
   const filePath = path.join(__dirname, '..', 'src', 'config', 'init.sql');
@@ -29,14 +31,25 @@ async function main() {
 
   try {
     console.log('Ejecutando SQL desde', filePath);
-    // Ejecuta el archivo completo. Si tu init.sql contiene SELECT/SHOW,
-    // mysql2 devolverá resultados que aquí ignoramos salvo errores.
     const [results] = await connection.query(sql);
     console.log('SQL ejecutado correctamente');
-    // Para ver un resumen simple de resultados de INSERT/UPDATE/DELETE:
     if (Array.isArray(results)) {
       console.log('Resultados:', results.length, 'sentencias procesadas');
     }
+
+    // Insertar usuarios de test con contraseña hasheada
+    console.log('Insertando usuarios de test...');
+    const adminPass = await bcrypt.hash('admin123', 10);
+    const customerPass = await bcrypt.hash('customer123', 10);
+
+    const userInserts = `
+      INSERT IGNORE INTO users (username, password, roleId) VALUES 
+      ('admin', '${adminPass}', 1),
+      ('customer', '${customerPass}', 2);
+    `;
+    await connection.query(userInserts);
+    console.log('Usuarios de test insertados');
+
   } catch (err) {
     console.error('Error ejecutando SQL:', err.message || err);
     process.exitCode = 1;
